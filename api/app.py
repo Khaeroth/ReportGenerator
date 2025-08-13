@@ -3,11 +3,9 @@ import os
 import sys
 from flask import Flask, request, render_template, send_file
 from collections import Counter
-import matplotlib.pyplot as plt
 import tempfile
 import openpyxl
 from openpyxl.utils.cell import get_column_letter
-from openpyxl.drawing.image import Image
 from openpyxl.styles import Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 import pandas as pd
@@ -23,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 # --- Funciones de Procesamiento ---
 def procesar_after_hours(ruta_archivo):
     """
-    Procesa el archivo para generar una gráfica semanal y la inserta en una nueva hoja.
+    Procesa el archivo para generar un reporte semanal de llamadas.
     Este es el script para 'After Hours'.
     Retorna la ruta del archivo procesado.
     """
@@ -63,7 +61,7 @@ def procesar_after_hours(ruta_archivo):
             if len(item) >= 24:
                 dias.append(f"{item[0:6]}, {item[-8:-6]}")
     
-    # Agrupar datos por día de la semana
+    # Agrupar datos por día de la semana y crear un DataFrame de resumen
     dias_por_semana = {'Mon': [], 'Tue': [], 'Wed': [], 'Thu': [], 'Fri': [], 'Sat': [],'Sun': []}
     for item in dias:
         partes = item.split(',')
@@ -75,23 +73,14 @@ def procesar_after_hours(ruta_archivo):
     etiquetas_semana = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     valores_semana = [sum(Counter(dias_por_semana[dia]).values()) for dia in etiquetas_semana]
     
-    # Creación del gráfico
-    plt.figure(figsize=(10, 3))
-    plt.bar(etiquetas_semana, valores_semana, color=['red', 'green', 'purple', 'blue', 'pink', 'brown', 'orange'])
-    plt.title('Total Missed Calls - Week Overview (After Hours)')
-    plt.xticks(rotation=45)
-    plt.grid(axis='y', linestyle='--', alpha=0.6)
-    plt.tight_layout()
+    df = pd.DataFrame({
+        'Día de la semana': etiquetas_semana,
+        'Número de llamadas': valores_semana
+    })
     
-    img_path = os.path.join(tempfile.gettempdir(), 'week_graph_after_hours.png')
-    plt.savefig(img_path)
-    plt.close()
-    
-    img = Image(img_path)
-    hoja_reporte.add_image(img, 'B2')
-    
-    # Limpieza de archivo temporal
-    os.remove(img_path)
+    # Escribir el DataFrame en la hoja de reporte
+    for r in dataframe_to_rows(df, index=False, header=True):
+        hoja_reporte.append(r)
     
     ruta_salida = os.path.join(tempfile.gettempdir(), f"procesado_after_hours_{os.path.basename(ruta_archivo)}")
     wb.save(ruta_salida)
@@ -100,7 +89,7 @@ def procesar_after_hours(ruta_archivo):
 
 def procesar_caller_disconnected(ruta_archivo):
     """
-    Procesa el archivo para generar una gráfica diaria para cada día con llamadas.
+    Procesa el archivo para generar un reporte diario de llamadas.
     Este es el script para 'Caller Disconnected'.
     Retorna la ruta del archivo procesado.
     """
@@ -148,12 +137,8 @@ def procesar_caller_disconnected(ruta_archivo):
             if dia_semana in dias_por_semana:
                 dias_por_semana[dia_semana].append(item)
     
-    fila_actual = 2
-    colores_por_dia = {
-        'Sun': 'orange', 'Mon': 'red', 'Tue': 'green', 'Wed': 'purple',
-        'Thu': 'blue', 'Fri': 'pink', 'Sat': 'brown'
-    }
-
+    # Iterar sobre los días para crear una tabla de resumen para cada uno
+    fila_actual = 1
     for dia, lista_dia in dias_por_semana.items():
         if not lista_dia:
             continue
@@ -184,32 +169,21 @@ def procesar_caller_disconnected(ruta_archivo):
                     hora_12 = f'{hora_24 - 12}pm'
                 etiquetas_am_pm.append(hora_12)
         
-        plt.figure(figsize=(10, 3))
-        plt.bar(etiquetas_am_pm, valores, color=colores_por_dia.get(dia, 'gray'))
+        df = pd.DataFrame({
+            'Día': [f'{dia} {numero}'],
+            'Hora': etiquetas_am_pm,
+            'Número de llamadas': valores
+        })
         
-        for i, valor in enumerate(valores):
-            plt.text(i, valor + 0.2, str(valor), ha='center', va='bottom', fontsize=8)
+        # Agregar un encabezado para cada tabla
+        hoja_reporte.cell(row=fila_actual, column=1, value=f'Reporte para el día {dia} (Caller Disconnected)')
+        fila_actual += 1
 
-        plt.grid(axis='y', linestyle='--', alpha=0.6)
-        plt.ylim(0, max(valores) * 1.5)
-        plt.subplots_adjust(bottom=0.20)
+        for r in dataframe_to_rows(df, index=False, header=True):
+            hoja_reporte.append(r)
         
-        plt.xlabel('Time')
-        plt.ylabel('Call count')
-        plt.title(f'{dia} {numero} - Total missed calls: {sum(valores)} (Caller Disconnected)')
-        plt.xticks(rotation=90)
-        plt.tight_layout()
+        fila_actual += len(df) + 2
 
-        img_path = os.path.join(tempfile.gettempdir(), f'graph_{dia}_caller_disconnected.png')
-        plt.savefig(img_path)
-        plt.close()
-        
-        img = Image(img_path)
-        hoja_reporte.add_image(img, f'B{fila_actual}')
-        os.remove(img_path)
-        
-        fila_actual += 20
-        
     ruta_salida = os.path.join(tempfile.gettempdir(), f"procesado_caller_disconnected_{os.path.basename(ruta_archivo)}")
     wb.save(ruta_salida)
     
