@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Procesador de Reportes de Llamadas</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-lg">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">
+            Procesador de Archivos Excel
+        </h1>
+        <p class="text-center text-gray-600 mb-8">
+            Sube un archivo .xlsx y elige un script para generar un reporte.
+        </p>
+
+        <form action="/upload" method="post" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <label for="file" class="block text-gray-700 font-semibold mb-2">
+                    1. Selecciona tu archivo .xlsx
+                </label>
+                <input type="file"
+                       id="file"
+                       name="file"
+                       accept=".xlsx"
+                       required
+                       class="block w-full text-sm text-gray-500
+                           file:mr-4 file:py-2 file:px-4
+                           file:rounded-full file:border-0
+                           file:text-sm file:font-semibold
+                           file:bg-indigo-50 file:text-indigo-700
+                           hover:file:bg-indigo-100" />
+            </div>
+
+            <div>
+                <label for="script" class="block text-gray-700 font-semibold mb-2">
+                    2. Elige el script a ejecutar
+                </label>
+                <select id="script"
+                        name="script"
+                        required
+                        class="block w-full py-2 px-3 border border-gray-300
+                           bg-white rounded-md shadow-sm focus:outline-none
+                           focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                    <option value="" disabled selected>Selecciona una opción</option>
+                    <option value="after_hours">After Hours</option>
+                    <option value="caller_disconnected">Caller Disconnected</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-indigo-600 text-white py-3 px-4 rounded-full
+                       hover:bg-indigo-700 focus:outline-none focus:ring-2
+                       focus:ring-indigo-500 focus:ring-offset-2
+                       transition duration-200">
+                Procesar y Descargar
+            </button>
+        </form>
+    </div>
+</body>
+</html>
