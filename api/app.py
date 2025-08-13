@@ -13,7 +13,10 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 import pandas as pd
 import logging
 
-app = Flask(__name__)
+# Se corrige la ruta de la carpeta de plantillas.
+# Flask buscará la carpeta 'templates' un nivel por encima del directorio 'api'.
+app = Flask(__name__, template_folder='../templates')
+
 # Configura el logger para que los errores se muestren en la consola de Vercel
 logging.basicConfig(level=logging.INFO)
 
